@@ -18,7 +18,16 @@ class RandomBot extends Bot {
 }
 
 class Brigadier extends Bot {
-  def move(input: Input) = {
+  def move(input: Input): Dir =
+    new BrigadierMove(this, input).move()
+}
+
+class BrigadierMove(bot: Brigadier, input: Input) {
+  val game  = input.game
+  val board = input.game.board
+  val hero  = input.hero
+
+  def move(): Dir = {
     println(s"Turn: ${input.game.turn}")
     val target = closest(input.hero.pos, foreignMines(input))
     val advance = toward(input.hero.pos, target)
