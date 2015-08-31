@@ -35,12 +35,23 @@ class BrigadierMove(bot: Brigadier, input: Input) {
     val path = bfs(hero.pos, isForeignMine)
     path match {
       case None =>
-        println("no path to goal")
+        println("no path to mine")
         Stay
       case Some(path) =>
-        val dir = followPath(path)
-        println(s"going to ${path.last} by way of $dir")
-        dir
+        healthAfterPath(path) match {
+          case hp if hp > 20 =>
+            println("proceeding to mine")
+            followPath(path)
+          case _ =>
+            bfs(hero.pos, isTavern) match {
+              case Some(path) =>
+                println("retreating to tavern")
+                followPath(path)
+              case None =>
+                println("no path to tavern")
+                Stay
+            }
+        }
     }
   }
 
@@ -70,12 +81,24 @@ class BrigadierMove(bot: Brigadier, input: Input) {
     return None
   }
 
+  // How much health would I have after following this path?
+  // Currently only accounts for thirst.
+  def healthAfterPath(path: Path): Int = {
+    assert(path.head == hero.pos)
+    assert(path.length > 0)
+    hero.life - path.length + 1
+  }
+
+  // Next direction to walk to follow path.
   def followPath(path: Path): Dir = {
     assert(path.head == hero.pos)
     assert(path.length > 0)
     path.length match {
       case 1 => Stay
-      case _ => toward(hero.pos, path(1))
+      case _ =>
+        val dir = toward(hero.pos, path(1))
+        println(s"going to ${path.last} by way of $dir")
+        dir
     }
   }
 
@@ -87,6 +110,12 @@ class BrigadierMove(bot: Brigadier, input: Input) {
       case Mine(Some(heroId)) => heroId != hero.id
       case Mine(_) => true
       case _ => false
+    }
+
+  def isTavern(p: Pos): Boolean =
+    board.at(p).get match {
+      case Tavern => true
+      case _      => false
     }
 
   // Get a list of the positions of all mines
