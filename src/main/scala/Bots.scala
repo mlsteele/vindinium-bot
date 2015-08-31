@@ -51,13 +51,10 @@ class BrigadierMove(bot: Brigadier, input: Input) {
     val visited = mutable.Set[Pos]()
     queue.enqueue(List(start))
     while (!queue.isEmpty) {
-      // println("\n--- bfs loop")
       val path = queue.dequeue()
       val pos = path.last
-      // println(s"visiting $pos")
       if (pred(pos)) { return Some(path) }
       visited.add(pos)
-      // println(s"visited $visited")
       // Add neighbors to queue:
       val newpaths = pos.neighbors
         // Must be unvisited
@@ -67,7 +64,6 @@ class BrigadierMove(bot: Brigadier, input: Input) {
         // Must be walkable OR a goal
         .filter(p => pred(p) || isWalkable(p))
         .map{ neighbor => path :+ neighbor }
-      // println(s"newpaths $newpaths")
       newpaths.map(queue.enqueue(_))
     }
     // No path to any goal was found.
