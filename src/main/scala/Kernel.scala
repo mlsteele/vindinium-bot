@@ -1,8 +1,10 @@
 package bot
+import sys.process._
 
 object Main {
 
   val bot: Bot = new Brigadier
+  val open_browser = true
 
   def main(args: Array[String]) = makeServer match {
     case Left(error) ⇒ println(error)
@@ -27,6 +29,9 @@ object Main {
       println(s"[$it/$games] Waiting for pairing...")
       val input = server.arena
       println(s"[$it/$games] Start arena game ${input.viewUrl}")
+      if (open_browser) {
+        s"google-chrome ${input.viewUrl}" !
+      }
       steps(server, input)
       println(s"\n[$it/$games] Finished arena game ${input.viewUrl}")
       if (it < games) oneGame(it + 1)
@@ -40,6 +45,9 @@ object Main {
     failsafe {
       val input = boot(server)
       println("Training game " + input.viewUrl)
+      if (open_browser) {
+        s"google-chrome ${input.viewUrl}" !
+      }
       steps(server, input)
       println(s"\nFinished training game ${input.viewUrl}")
     }
