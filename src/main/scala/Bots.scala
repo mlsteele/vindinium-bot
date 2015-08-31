@@ -37,7 +37,10 @@ class BrigadierMove(bot: Brigadier, input: Input) {
       case None =>
         println("no path to goal")
         Stay
-      case Some(path) => followPath(path)
+      case Some(path) =>
+        val dir = followPath(path)
+        println(s"going to ${path.last} by way of $dir")
+        dir
     }
   }
 
