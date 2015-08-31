@@ -51,15 +51,23 @@ class BrigadierMove(bot: Brigadier, input: Input) {
     val visited = mutable.Set[Pos]()
     queue.enqueue(List(start))
     while (!queue.isEmpty) {
+      // println("\n--- bfs loop")
       val path = queue.dequeue()
-      val pos = path.head
+      val pos = path.last
+      // println(s"visiting $pos")
       if (pred(pos)) { return Some(path) }
       visited.add(pos)
-      // Add walkable unvisited neighbors to queue
+      // println(s"visited $visited")
+      // Add neighbors to queue:
       val newpaths = pos.neighbors
-        .filter(isWalkable)
+        // Must be unvisited
         .filter{!visited.contains(_)}
+        // Must be on the board
+        .filter{board.at(_).isDefined}
+        // Must be walkable OR a goal
+        .filter(p => pred(p) || isWalkable(p))
         .map{ neighbor => path :+ neighbor }
+      // println(s"newpaths $newpaths")
       newpaths.map(queue.enqueue(_))
     }
     // No path to any goal was found.
@@ -118,11 +126,11 @@ class BrigadierMove(bot: Brigadier, input: Input) {
 
   def isWalkable(p: Pos): Boolean =
     game.board.at(p).getOrElse(Wall) match {
-      case Wall => false
+      case Air         => true
+      case Wall        => false
+      case Tavern      => false
       case _:Tile.Hero => false
-      case Air => true
-      case Tavern => true
-      case _:Mine => true
+      case _:Mine      => false
     }
 
   def randomDir() = {
