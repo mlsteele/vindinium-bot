@@ -3,7 +3,7 @@ package bot
 import Dir._
 import scala.util.Random
 import Tile._
-import math.sqrt
+import math.{sqrt, abs}
 
 trait Bot {
   def move(input: Input): Dir
@@ -19,13 +19,27 @@ class RandomBot extends Bot {
 
 class Brigadier extends Bot {
   def move(input: Input) = {
-    val target = closest(input.hero.pos, mines(input))
+    println(s"Turn: ${input.game.turn}")
+    val target = closest(input.hero.pos, foreignMines(input))
     val advance = toward(input.hero.pos, target)
     isWalkable(input, input.hero.pos.to(advance)) match {
-      case true => advance
-      case false => randomDir(input)
+      case true =>
+        println(s"  advance ${advance}")
+        advance
+      case false =>
+        println("  random")
+        randomDir(input)
     }
   }
+
+  def foreignMines(input: Input): List[Pos] =
+    select(input, ((p, t) => t match {
+      case Mine(heroId) => heroId match {
+        case Some(heroId) => (heroId != input.hero.id)
+        case None => true
+      }
+      case _ => false
+    }))
 
   def mines(implicit input: Input): List[Pos] =
     select(input, ((p, t) => t match {
@@ -34,15 +48,15 @@ class Brigadier extends Bot {
     }))
 
   def toward(origin: Pos, target: Pos): Dir = {
-    List(North, South, West, East).map{ dir =>
-      (dir, distance(origin.to(dir), target))
-    }.sortBy(_._2).head._1
+    List(North, East, South, West).sortBy{ dir =>
+      distance(origin.to(dir), target)
+    }.head
   }
 
   def distance(a: Pos, b: Pos): Double = {
-    val diffx = b.x - a.x
-    val diffy = b.y - a.y
-    sqrt(diffx * diffx + diffy + diffy)
+    val diffx = abs(b.x - a.x)
+    val diffy = abs(b.y - a.y)
+    diffx + diffy
   }
 
   def closest(to: Pos, candidates: List[Pos]) =
@@ -62,7 +76,7 @@ class Brigadier extends Bot {
   def isWalkable(implicit input: Input, p: Pos): Boolean =
     input.game.board.at(p).getOrElse(Wall) match {
       case Wall => false
-      case _:Hero => false
+      case _:Tile.Hero => false
       case Air => true
       case Tavern => true
       case _:Mine => true
