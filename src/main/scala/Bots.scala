@@ -2,6 +2,7 @@ package bot
 
 import Dir._
 import scala.util.Random
+import collection.mutable
 import Tile._
 import math.{sqrt, abs}
 
@@ -23,21 +24,51 @@ class Brigadier extends Bot {
 }
 
 class BrigadierMove(bot: Brigadier, input: Input) {
+  type Path = List[Pos]
+
   val game  = input.game
   val board = input.game.board
   val hero  = input.hero
 
   def move(): Dir = {
     println(s"Turn: ${game.turn}")
-    val target = closest(hero.pos, foreignMines())
-    val advance = toward(hero.pos, target)
-    isWalkable(hero.pos.to(advance)) match {
-      case true =>
-        println(s"  advance ${advance}")
-        advance
-      case false =>
-        println("  random")
-        randomDir()
+    val path = bfs(hero.pos, isForeignMine)
+    path match {
+      case None =>
+        println("no path to goal")
+        Stay
+      case Some(path) => followPath(path)
+    }
+  }
+
+  // Do a BFS search from `start` towards any place satisfying `pred`.
+  // Returns the path from `start` to the endpoint including the endpoint.
+  def bfs(start: Pos, pred: Pos => Boolean): Option[Path] = {
+    val queue = mutable.Queue[Path]()
+    val visited = mutable.Set[Pos]()
+    queue.enqueue(List(start))
+    while (!queue.isEmpty) {
+      val path = queue.dequeue()
+      val pos = path.head
+      if (pred(pos)) { return Some(path) }
+      visited.add(pos)
+      // Add walkable unvisited neighbors to queue
+      val newpaths = pos.neighbors
+        .filter(isWalkable)
+        .filter{!visited.contains(_)}
+        .map{ neighbor => path :+ neighbor }
+      newpaths.map(queue.enqueue(_))
+    }
+    // No path to any goal was found.
+    return None
+  }
+
+  def followPath(path: Path): Dir = {
+    assert(path.head == hero.pos)
+    assert(path.length > 0)
+    path.length match {
+      case 1 => Stay
+      case _ => toward(hero.pos, path(1))
     }
   }
 
@@ -50,6 +81,13 @@ class BrigadierMove(bot: Brigadier, input: Input) {
       case _ => false
     })
 
+  def isForeignMine(p: Pos): Boolean =
+    board.at(p).get match {
+      case Mine(Some(heroId)) => heroId != hero.id
+      case Mine(_) => true
+      case _ => false
+    }
+
   def mines(): List[Pos] =
     select((p, t) => t match {
       case _:Mine => true
@@ -57,7 +95,7 @@ class BrigadierMove(bot: Brigadier, input: Input) {
     })
 
   def toward(origin: Pos, target: Pos): Dir = {
-    List(North, East, South, West).sortBy{ dir =>
+    List(North, East, South, West, Stay).sortBy{ dir =>
       distance(origin.to(dir), target)
     }.head
   }
