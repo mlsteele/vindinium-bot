@@ -19,6 +19,8 @@ object Main {
         training(server, _.training(int(turns)))
       case Array("training", turns, map) ⇒
         training(server, _.training(int(turns), Some(map)))
+      case Array("test") ⇒
+        Test.runAll()
       case a ⇒ println("Invalid arguments: " + a.mkString(" "))
     }
   }
