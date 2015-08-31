@@ -6,6 +6,7 @@ object VindiniumBot extends Build {
     id = "vindinium-bot",
     base = file("."),
     settings = Defaults.defaultSettings ++ Seq(
+      fork := true,
       organization := "org.jousse",
       version := "0.1",
       scalaVersion := "2.10.3",
