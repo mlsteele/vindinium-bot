@@ -32,27 +32,55 @@ class BrigadierMove(bot: Brigadier, input: Input) {
 
   def move(): Dir = {
     println(s"Turn: ${game.turn}")
-    val path = bfs(hero.pos, isForeignMine)
-    path match {
-      case None =>
-        println("no path to mine")
-        Stay
-      case Some(path) =>
-        healthAfterPath(path) match {
-          case hp if hp > 20 =>
-            println("proceeding to mine")
-            followPath(path)
-          case _ =>
-            bfs(hero.pos, isTavern) match {
-              case Some(path) =>
-                println("retreating to tavern")
-                followPath(path)
-              case None =>
-                println("no path to tavern")
-                Stay
-            }
-        }
+
+    // Stay at a tavern.
+    if (isNeighboringTavern && canAffordBeer && !mostlyHealed) {
+      println(s"Staying at tavern.")
+      return visitTavern()
     }
+
+    // Conquer a mine.
+    bfs(isForeignMine).map{ pathToClosestForeignMine =>
+      if (healthAfterPath(pathToClosestForeignMine) > 35) {
+        println(s"Heading to attack mine.")
+        return followPath(pathToClosestForeignMine)
+      }
+    }
+
+    // Run to a tavern.
+    bfs(isTavern).map{ pathToTavern =>
+      println(s"Running to tavern.")
+      return followPath(pathToTavern)
+    }
+
+    println(s"Nothing to do.")
+    Stay
+  }
+
+  // Is there a neighboring tavern?
+  def isNeighboringTavern(): Boolean = 
+    hero.pos.neighbors.exists{ p =>
+      board.at(p) match {
+        case Some(Tavern) => true
+        case _ => false
+      }
+    }
+
+  def canAffordBeer(): Boolean =
+    hero.gold >= 2
+
+  def mostlyHealed(): Boolean =
+    hero.life > 90
+
+  def visitTavern(): Dir = {
+    assert(isNeighboringTavern())
+    val target = hero.pos.neighbors.filter{ p =>
+      board.at(p) match  {
+        case Some(Tavern) => true
+        case _ => false
+      }
+    }.head
+    toward(hero.pos, target)
   }
 
   // Do a BFS search from `start` towards any place satisfying `pred`.
@@ -80,6 +108,9 @@ class BrigadierMove(bot: Brigadier, input: Input) {
     // No path to any goal was found.
     return None
   }
+
+  def bfs(pred: Pos => Boolean): Option[Path] =
+    bfs(hero.pos, pred)
 
   // How much health would I have after following this path?
   // Currently only accounts for thirst.
