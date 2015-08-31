@@ -81,11 +81,31 @@ object Main {
 
   def makeServer = (
     Option(System.getProperty("server")) getOrElse "http://vindinium.org/",
-    System.getProperty("key")
+    getKey
   ) match {
-      case (_, null)  ⇒ Left("Specify the user key with -Dkey=mySecretKey")
-      case (url, key) ⇒ Right(new Server(url + "/api", key))
+      case (_, None)  ⇒ Left("Specify the user key with -Dkey=mySecretKey")
+      case (url, Some(key)) ⇒ Right(new Server(url + "/api", key))
     }
+
+  def getKey: Option[String] = {
+    Option[String](System.getProperty("key")).orElse(getKeyFromFile)
+  }
+
+  def getKeyFromFile: Option[String] = {
+    val source = io.Source.fromFile("secrets.txt")
+    try {
+      val keyEntry = "key: *(.*)".r
+      for (line <- source.getLines) {
+        line match {
+          case keyEntry(key) => return Some(key)
+          case _ =>
+        }
+      }
+    } finally {
+      source.close()
+    }
+    None
+  }
 
   def int(str: String) = java.lang.Integer.parseInt(str)
 }
