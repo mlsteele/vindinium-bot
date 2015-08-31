@@ -72,14 +72,8 @@ class BrigadierMove(bot: Brigadier, input: Input) {
     }
   }
 
-  def foreignMines(): List[Pos] =
-    select((p, t) => t match {
-      case Mine(heroId) => heroId match {
-        case Some(heroId) => (heroId != hero.id)
-        case None => true
-      }
-      case _ => false
-    })
+  // Get a list of the positions of all mines not owned by me.
+  def foreignMines(): List[Pos] = select(isForeignMine)
 
   def isForeignMine(p: Pos): Boolean =
     board.at(p).get match {
@@ -88,8 +82,9 @@ class BrigadierMove(bot: Brigadier, input: Input) {
       case _ => false
     }
 
+  // Get a list of the positions of all mines
   def mines(): List[Pos] =
-    select((p, t) => t match {
+    select(pos => board.at(pos).get match {
       case _:Mine => true
       case _ => false
     })
@@ -110,14 +105,12 @@ class BrigadierMove(bot: Brigadier, input: Input) {
     candidates.sortBy(distance(to, _)).head
 
   // Get all positions satisfying a predicate.
-  def select(pred: (Pos, Tile) => Boolean): List[Pos] = {
+  def select(pred: Pos => Boolean): List[Pos] = {
     (0 until game.board.size).flatMap{ x =>
       (0 until game.board.size).map{ y =>
-        val p = Pos(x, y)
-        val z: (Pos, Tile) = (p, game.board.at(Pos(x, y)).get)
-        z
+        Pos(x, y)
       }
-    }.filter(pred.tupled).map(_._1).toList
+    }.filter(pred).toList
   }
 
   def isWalkable(p: Pos): Boolean =
