@@ -1,8 +1,11 @@
 package bot
 import sys.process._
+import scala.concurrent.Future
+import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 object Main {
-
   val bot: Bot = new Brigadier
   val open_browser = true
 
@@ -75,7 +78,9 @@ object Main {
   def step(server: Server, input: Input) {
     if (!input.game.finished) {
       print(".")
-      step(server, server.move(input.playUrl, bot move input))
+      val future_dir = Future { bot.move(input) }
+      val dir = Await.result(future_dir, 1 seconds)
+      step(server, server.move(input.playUrl, dir))
     }
   }
 
